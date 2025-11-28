@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  api:
+    build: ./api
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./api:/app
+
+  worker:
+    build: ./api
+    command: celery -A workers.worker.celery_app worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./api:/app
+
+  scheduler:
+    build: ./api
+    command: celery -A workers.scheduler.app beat --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    volumes:
+      - ./api:/app
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
