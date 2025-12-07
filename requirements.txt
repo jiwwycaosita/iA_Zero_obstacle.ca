@@ -1,8 +1,11 @@
 fastapi
-uvicorn
+"uvicorn[standard]"
 celery
 redis
 python-dotenv
 supabase-py
 requests
 pyyaml
+openai
+httpx
+pypdf
