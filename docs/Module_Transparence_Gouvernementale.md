@@ -17,6 +17,7 @@ Analyse transparente de la gestion des fonds publics.
 - Investissements en infrastructures
 - Salaires et avantages des fonctionnaires
 - Programmes de relance économique
+- Données environnementales (terrains contaminés, conformité environnementale)
 
 **Présentation des données :**
 - Tableaux de bord interactifs
@@ -82,6 +83,26 @@ Historique complet des manquements et sanctions.
 - Transparence sur l'utilisation de fonds publics
 - Prévention de la récidive
 - Responsabilisation des entreprises
+
+#### Transparence environnementale
+
+Le module intègre également des données sur l'environnement et les terrains contaminés.
+
+**Ressources clés :**
+- **[ContaMire (GeoPraTIC)](https://www.geopratic.com/contamire/)** : Cartographie interactive des terrains contaminés au Québec
+  - Agrège les données provinciales (MELCC) et fédérales
+  - Localisation précise des sites contaminés
+  - Type de contamination (hydrocarbures, métaux lourds, pesticides, etc.)
+  - État de réhabilitation
+  - Qualité des sols et de l'eau
+  - Filtres par type de contaminant et statut
+
+**Utilité :**
+- Identifier les entreprises responsables de contamination
+- Suivre les investissements de décontamination
+- Vérifier la conformité environnementale
+- Évaluer les risques pour la santé publique
+- Surveiller l'évolution des dossiers de réhabilitation
 
 ### 5. Interface claire et accessible
 Présentation des données sous forme compréhensible pour tous.
@@ -172,6 +193,7 @@ Permettre aux citoyens de surveiller la gestion de l'argent public, d'être info
 - Déclarations d'intérêts
 - Jugements de tribunaux
 - Rapports de vérificateurs
+- Bases de données environnementales (ex: [ContaMire](https://www.geopratic.com/contamire/) pour les terrains contaminés au Québec)
 
 **Sources médiatiques :**
 - Articles de presse vérifiés
