@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  db-wp:
+    image: mysql:8.0
+    container_name: zero-obstacle-db
+    restart: unless-stopped
+    environment: 
+      MYSQL_DATABASE: ${WP_DB_NAME:-wordpress}
+      MYSQL_USER: ${WP_DB_USER:-wpuser}
+      MYSQL_PASSWORD: ${WP_DB_PASSWORD:-wppass}
+      MYSQL_ROOT_PASSWORD: ${WP_DB_ROOT_PASSWORD:-rootpass}
+    volumes:
+      - wp-db-data:/var/lib/mysql
+    networks:
+      - wp-net
+
+  wordpress:
+    image: wordpress:6.4-php8.2-apache
+    container_name: zero-obstacle-wp
+    restart: unless-stopped
+    depends_on:
+      - db-wp
+    ports:
+      - "8090:80"
+    environment: 
+      WORDPRESS_DB_HOST: db-wp:3306
+      WORDPRESS_DB_NAME: ${WP_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WP_DB_USER:-wpuser}
+      WORDPRESS_DB_PASSWORD: ${WP_DB_PASSWORD:-wppass}
+      WORDPRESS_DEBUG: ${WP_DEBUG:-false}
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+    networks:
+      - wp-net
+
+volumes:
+  wp-db-data: 
+
+networks:
+  wp-net: 
+    driver: bridge

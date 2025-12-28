@@ -1,0 +1,79 @@
+/*
+Theme Name: Zero Obstacle
+Theme URI: https://ia-solution-canada.org
+Description: Thème enfant bilingue pour initiative citoyenne iA_Solution_Canada
+Author: Équipe citoyenne
+Author URI: https://github.com/jiwwycaosita/iA_Zero_obstacle.ca
+Template: neve
+Version: 1.0.0
+License: GPL v3
+Text Domain: zero-obstacle
+*/
+
+@import url('../neve/style.css');
+
+:root {
+  --primary-color: #0066cc;
+  --secondary-color: #ff6600;
+  --accent-color: #00a651;
+  --text-dark: #212529;
+  --bg-light: #f8f9fa;
+}
+
+body {
+  font-family: 'Open Sans', Arial, sans-serif;
+  color: var(--text-dark);
+}
+
+h1, h2, h3 {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  color: white;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.cta-button {
+  background-color: var(--secondary-color);
+  color: white;
+  padding: 14px 32px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.3s;
+}
+
+.cta-button:hover {
+  background-color: #e65500;
+}
+
+.impact-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 30px 0;
+}
+
+.impact-table th {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px;
+  text-align: left;
+}
+
+.impact-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.testimonial {
+  background: var(--bg-light);
+  padding: 20px;
+  margin: 15px 0;
+  border-left: 4px solid var(--accent-color);
+  font-style: italic;
+}
