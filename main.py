@@ -37,6 +37,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add API Key middleware
+from api.security import APIKeyMiddleware
+app.add_middleware(APIKeyMiddleware)
+
+# Configure structured logging
+import structlog
+import logging
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.JSONRenderer()
+    ],
+    wrapper_class=structlog.stdlib.BoundLogger,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+)
+
+log = structlog.get_logger()
+
 
 # =========================
 #       Modèles Pydantic
@@ -103,15 +123,21 @@ def agent_extract_pdf_text(pdf_bytes: bytes) -> str:
     Extraction brute du texte d'un PDF avec pypdf.
     Ne fait aucune interprétation juridique : seulement du texte.
     """
-
-    reader = PdfReader(io.BytesIO(pdf_bytes))
-    text_chunks: List[str] = []
-    for page in reader.pages:
-        try:
-            text_chunks.append(page.extract_text() or "")
-        except Exception:
-            continue
-    return "\n\n".join(text_chunks)
+    if not pdf_bytes:
+        return ""
+    
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text_chunks: List[str] = []
+        for page in reader.pages:
+            try:
+                text_chunks.append(page.extract_text() or "")
+            except Exception:
+                continue
+        return "\n\n".join(text_chunks)
+    except Exception:
+        # Return empty string if PDF cannot be parsed
+        return ""
 
 
 async def agent_structure_pdf_form_fields(raw_text: str) -> Dict[str, Any]:
@@ -254,6 +280,16 @@ Retour attendu (JSON) :
 @app.get("/health")
 async def health():
     return {"status": "ok", "model": OLLAMA_MODEL}
+
+
+@app.get("/metrics")
+async def metrics():
+    """Endpoint pour monitoring Prometheus"""
+    return {
+        "status": "ok",
+        "service": "Zero Obstacle Agents",
+        "version": "0.1.0"
+    }
 
 
 @app.post("/agent/orchestrate", response_model=OrchestrationResponse)
