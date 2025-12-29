@@ -37,8 +37,34 @@ Plateforme MVP d'orchestration d'agents auto-hébergeables pour le projet « Zer
 ## Endpoints clés
 
 - `GET /health` : vérifie que le serveur répond et retourne le modèle Ollama configuré.
+- `GET /metrics` : endpoint de monitoring pour Prometheus.
 - `POST /agent/orchestrate` : route les tâches `pdf_extraction`, `admissibility`, `prefill`, `general` vers les agents dédiés.
 - Démos : `GET /demo/admissibility`, `GET /demo/prefill`.
+
+## Sécurité
+
+L'API est protégée par un système d'API Key. Pour utiliser l'API :
+
+1. Générer une clé : `openssl rand -hex 32`
+2. Ajouter dans `.env` : `API_KEY=votre-clé-générée`
+3. Inclure dans chaque requête : header `X-API-Key: votre-clé-générée`
+
+Les endpoints `/health`, `/metrics`, `/docs` sont accessibles sans authentification.
+
+## Tests
+
+```bash
+# Tests unitaires
+pytest tests/ -v
+
+# Tests avec couverture
+pytest --cov=main --cov-report=html
+
+# Smoke test
+python test_api.py
+```
+
+Voir `RUNBOOK.md` pour la documentation opérationnelle complète.
 
 ## Notes importantes
 
