@@ -45,3 +45,26 @@ Plateforme MVP d'orchestration d'agents auto-hébergeables pour le projet « Zer
 - Les règles d’admissibilité doivent être fournies explicitement dans les requêtes (`program_rules`), aucune logique juridique n’est inventée.
 - Le préremplissage ne devine pas d’informations absentes du profil utilisateur.
 - Le parsing JSON des réponses LLM est volontairement simple pour rester un MVP ; prévoir du durcissement pour la production.
+
+## Extraction de données
+
+Le projet inclut un module d'extraction automatisée pour ingérer les données des sites gouvernementaux canadiens.
+
+### Quick start
+```bash
+# Crawler les sources prioritaires
+scripts\run_firecrawl.bat priority
+
+# Normaliser les données
+python agents/normalization.py
+```
+
+Voir `docs/extraction.md` pour la documentation complète.
+
+### Sources couvertes
+- ✅ Canada.ca (prestations, impôts, immigration, emploi)
+- ✅ Québec.ca (aide financière, santé, éducation)
+- ✅ Ontario.ca (services sociaux)
+- ✅ Open Data Canada
+
+Les données extraites sont dans `data/can_gov/` (brut) et `data/processed/` (normalisé).
