@@ -41,6 +41,15 @@ def crawl_url(url: str, format: str = "markdown") -> dict:
     if not FIRECRAWL_API_KEY:
         raise ValueError("FIRECRAWL_API_KEY non définie dans .env")
     
+    # Validate format parameter
+    allowed_formats = ["markdown", "html", "text"]
+    if format not in allowed_formats:
+        raise ValueError(f"Format invalide: {format}. Formats permis: {allowed_formats}")
+    
+    # Basic URL validation
+    if not url.startswith(("http://", "https://")):
+        raise ValueError(f"URL invalide: {url}. L'URL doit commencer par http:// ou https://")
+    
     url_hash = get_url_hash(url)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     

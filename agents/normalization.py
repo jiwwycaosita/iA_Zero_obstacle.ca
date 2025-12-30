@@ -55,7 +55,13 @@ def normalize_all():
     raw_dir = Path("data/can_gov")
     
     for raw_file in raw_dir.glob("*.json"):
-        url_hash = raw_file.stem.split("_")[0]
+        # Validate filename format (expected: {hash}_{timestamp}.json)
+        parts = raw_file.stem.split("_")
+        if len(parts) < 1:
+            print(f"⚠️ Skipping invalid filename: {raw_file.name}")
+            continue
+        
+        url_hash = parts[0]
         normalized_file = PROCESSED_DIR / f"normalized_{url_hash}.json"
         
         if not normalized_file.exists():

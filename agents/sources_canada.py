@@ -96,6 +96,26 @@ def get_priority_sources() -> list:
     ]
 
 
+def flatten_all_urls(sources_dict: dict) -> list:
+    """
+    Flatten a nested dictionary of sources into a single list of URLs
+    
+    Args:
+        sources_dict: Dictionary that may contain nested dicts or lists of URLs
+    
+    Returns:
+        Flat list of all URLs
+    """
+    all_urls = []
+    for category, content in sources_dict.items():
+        if isinstance(content, dict):
+            for urls in content.values():
+                all_urls.extend(urls)
+        else:
+            all_urls.extend(content)
+    return all_urls
+
+
 if __name__ == "__main__":
     sources = get_all_sources()
     print(f"📚 Total des sources: {sum(len(v) if isinstance(v, list) else sum(len(vv) for vv in v.values()) for v in sources.values())}")
