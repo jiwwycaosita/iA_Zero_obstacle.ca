@@ -1,0 +1,6 @@
+J'autorise l'ingestion et la conservation des contenus listés dans src/sources.yaml (lois fédérales, lois provinciales, jurisprudence, régulateurs et règlements municipaux) pour usage COMMERCIAL. 
+Je confirme disposer des droits nécessaires pour collecter ces sources et j'autorise l'équipe à engager les négociations nécessaires pour les flux bulk (CanLII, provinces, fournisseurs).
+Je confirme l'hébergement obligatoire au Canada (région ca-central-1 ou northamerica-northeast1).
+
+Signature: Jimmy Renaud 
+Date: 2025-12-30
