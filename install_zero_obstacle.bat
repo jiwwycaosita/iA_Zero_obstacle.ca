@@ -29,7 +29,7 @@ echo Activation de l'environnement et installation des packages...
 call venv\Scripts\activate
 
 python -m pip install --upgrade pip
-pip install fastapi "uvicorn[standard]" httpx pypdf python-dotenv
+pip install -r requirements.txt
 
 echo.
 echo Creation du fichier .env (OLLAMA_URL et OLLAMA_MODEL) si inexistant...
