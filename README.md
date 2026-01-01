@@ -2,12 +2,36 @@
 
 Plateforme MVP d'orchestration d'agents auto-hébergeables pour le projet « Zero Obstacle ».
 
+## Structure du projet
+
+Ce dépôt contient **deux applications distinctes** :
+
+### 1. Application principale : Zero Obstacle Agents (`main.py`)
+- Serveur FastAPI avec orchestrateur et agents (extraction PDF, admissibilité, préremplissage, questions générales)
+- Utilise Ollama pour les modèles LLM locaux
+- Destiné à être déployé sur Windows
+- **Scripts d'installation** : `install_zero_obstacle.bat` et `start_zero_obstacle.bat`
+
+### 2. Application exemple : Celery API (`api/app.py`)
+- Exemple d'API avec Celery pour traitement asynchrone
+- Utilise Redis, OpenAI, et Supabase
+- Destiné à être déployé via Docker
+- **Démarrage** : `docker-compose up`
+
 ## Contenu du dépôt
 
-- `main.py` : serveur FastAPI avec orchestrateur et agents (extraction PDF, admissibilité, préremplissage, questions générales) utilisant Ollama.
-- `wordpress-plugin/zero-obstacle-agent/zero-obstacle-agent.php` : plugin WordPress minimal pour relayer les questions vers l'orchestrateur.
-- `install_zero_obstacle.bat` / `start_zero_obstacle.bat` : scripts Windows pour installer les dépendances et démarrer le serveur.
-- `test_api.py` : tests manuels simples pour vérifier que l'API répond localement.
+### Application principale (Zero Obstacle)
+- `main.py` : serveur FastAPI avec orchestrateur et agents utilisant Ollama
+- `wordpress-plugin/zero-obstacle-agent/zero-obstacle-agent.php` : plugin WordPress minimal pour relayer les questions vers l'orchestrateur
+- `install_zero_obstacle.bat` / `start_zero_obstacle.bat` : scripts Windows pour installer les dépendances et démarrer le serveur
+- `test_api.py` : tests manuels simples pour vérifier que l'API répond localement
+
+### Application exemple (Celery)
+- `api/app.py` : exemple d'API FastAPI avec intégration Celery
+- `api/workers/` : workers Celery et scheduler
+- `api/connectors/` : connecteurs OpenAI et Supabase
+- `docker-compose.yml` : configuration Docker pour l'application Celery
+- `api/Dockerfile` : Dockerfile pour l'application Celery
 
 ## Prérequis
 
@@ -36,9 +60,14 @@ Plateforme MVP d'orchestration d'agents auto-hébergeables pour le projet « Zer
 
 ## Endpoints clés
 
+### Application principale (main.py - port 8080)
 - `GET /health` : vérifie que le serveur répond et retourne le modèle Ollama configuré.
 - `POST /agent/orchestrate` : route les tâches `pdf_extraction`, `admissibility`, `prefill`, `general` vers les agents dédiés.
 - Démos : `GET /demo/admissibility`, `GET /demo/prefill`.
+
+### Application exemple (api/app.py - port 8000)
+- `GET /` : health check de l'API Celery
+- `POST /enqueue` : enqueue une tâche d'addition pour le worker Celery
 
 ## Notes importantes
 
