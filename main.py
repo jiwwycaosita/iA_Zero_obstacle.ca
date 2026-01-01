@@ -87,10 +87,10 @@ async def call_ollama(prompt: str) -> str:
         "stream": False,
     }
     async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(url, json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-    return data.get("response", "").strip()
+        response = await client.post(url, json=payload)
+        response.raise_for_status()
+        response_data = response.json()
+    return response_data.get("response", "").strip()
 
 
 # =========================
@@ -140,17 +140,17 @@ Tâche :
   "fields": [ ... ]
 }}
 """
-    response = await call_ollama(prompt)
+    llm_response = await call_ollama(prompt)
     import json
 
     try:
-        data = json.loads(response)
+        structured_data = json.loads(llm_response)
     except Exception:
-        data = {
+        structured_data = {
             "fields": [],
-            "raw_response": response,
+            "raw_response": llm_response,
         }
-    return data
+    return structured_data
 
 
 async def agent_admissibility(user_profile: Dict[str, Any], program_rules: List[ProgramRule]) -> Dict[str, Any]:
@@ -162,7 +162,7 @@ async def agent_admissibility(user_profile: Dict[str, Any], program_rules: List[
 
     import json
 
-    rules_json = json.dumps([r.dict() for r in program_rules], ensure_ascii=False)
+    rules_json = json.dumps([rule.dict() for rule in program_rules], ensure_ascii=False)
     profile_json = json.dumps(user_profile, ensure_ascii=False)
 
     prompt = f"""
@@ -191,16 +191,16 @@ Retourne un JSON strictement valide de la forme :
 }}
 """
 
-    response = await call_ollama(prompt)
+    llm_response = await call_ollama(prompt)
     try:
-        data = json.loads(response)
+        eligibility_result = json.loads(llm_response)
     except Exception:
-        data = {
+        eligibility_result = {
             "eligible": False,
             "failed_rules": [],
-            "details": f"Réponse non JSON du modèle : {response}",
+            "details": f"Réponse non JSON du modèle : {llm_response}",
         }
-    return data
+    return eligibility_result
 
 
 async def agent_prefill_form(user_profile: Dict[str, Any], fields_schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -235,15 +235,15 @@ Retour attendu (JSON) :
   }}
 }}
 """
-    response = await call_ollama(prompt)
+    llm_response = await call_ollama(prompt)
     try:
-        data = json.loads(response)
+        prefilled_values = json.loads(llm_response)
     except Exception:
-        data = {
+        prefilled_values = {
             "values": {},
-            "details": f"Réponse non JSON du modèle : {response}",
+            "details": f"Réponse non JSON du modèle : {llm_response}",
         }
-    return data
+    return prefilled_values
 
 
 # =========================
@@ -257,62 +257,62 @@ async def health():
 
 
 @app.post("/agent/orchestrate", response_model=OrchestrationResponse)
-async def orchestrate(req: OrchestrationRequest):
+async def orchestrate(request: OrchestrationRequest):
     """
     Endpoint général appelé par WordPress.
     Selon task, route vers l'agent approprié.
     """
 
-    if req.task == "pdf_extraction":
-        if not req.pdf_base64:
+    if request.task == "pdf_extraction":
+        if not request.pdf_base64:
             raise HTTPException(status_code=400, detail="pdf_base64 manquant")
         try:
-            pdf_bytes = base64.b64decode(req.pdf_base64)
+            pdf_bytes = base64.b64decode(request.pdf_base64)
         except Exception:
             raise HTTPException(status_code=400, detail="pdf_base64 invalide")
 
         raw_text = agent_extract_pdf_text(pdf_bytes)
         structured = await agent_structure_pdf_form_fields(raw_text)
         return OrchestrationResponse(
-            task=req.task,
+            task=request.task,
             result={
                 "raw_text_preview": raw_text[:2000],
                 "structured": structured,
             },
         )
 
-    if req.task == "admissibility":
-        if not req.user_profile or not req.program_rules:
+    if request.task == "admissibility":
+        if not request.user_profile or not request.program_rules:
             raise HTTPException(status_code=400, detail="user_profile et program_rules sont requis")
-        result = await agent_admissibility(req.user_profile, req.program_rules)
-        return OrchestrationResponse(task=req.task, result=result)
+        result = await agent_admissibility(request.user_profile, request.program_rules)
+        return OrchestrationResponse(task=request.task, result=result)
 
-    if req.task == "prefill":
-        if not req.user_profile or not req.text:
+    if request.task == "prefill":
+        if not request.user_profile or not request.text:
             raise HTTPException(status_code=400, detail="user_profile et text (schéma) sont requis")
         import json
 
         try:
-            fields_schema = json.loads(req.text)
+            fields_schema = json.loads(request.text)
         except Exception:
             raise HTTPException(status_code=400, detail="text doit contenir un JSON de schéma de champs")
-        result = await agent_prefill_form(req.user_profile, fields_schema)
-        return OrchestrationResponse(task=req.task, result=result)
+        result = await agent_prefill_form(request.user_profile, fields_schema)
+        return OrchestrationResponse(task=request.task, result=result)
 
-    if req.task == "general":
-        if not req.text:
+    if request.task == "general":
+        if not request.text:
             raise HTTPException(status_code=400, detail="text manquant pour task=general")
         prompt = f"""
 Tu es un assistant Zero Obstacle.
 Réponds de façon structurée, en expliquant clairement les étapes administratives,
 sans inventer de lois ni de droits. Si une information n'est pas disponible, dis-le.
 Question :
-{req.text}
+{request.text}
 """
-        response = await call_ollama(prompt)
-        return OrchestrationResponse(task=req.task, result={"answer": response})
+        llm_response = await call_ollama(prompt)
+        return OrchestrationResponse(task=request.task, result={"answer": llm_response})
 
-    raise HTTPException(status_code=400, detail=f"Task inconnue: {req.task}")
+    raise HTTPException(status_code=400, detail=f"Task inconnue: {request.task}")
 
 
 # =========================
@@ -351,7 +351,7 @@ async def demo_admissibility():
         ),
     ]
     result = await agent_admissibility(demo_profile, demo_rules)
-    return {"profile": demo_profile, "rules": [r.dict() for r in demo_rules], "result": result}
+    return {"profile": demo_profile, "rules": [rule.dict() for rule in demo_rules], "result": result}
 
 
 @app.get("/demo/prefill")

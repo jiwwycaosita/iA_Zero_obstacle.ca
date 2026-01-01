@@ -67,14 +67,14 @@ function zoa_form_shortcode() {
         if (is_wp_error($response)) {
             $output .= '<div style="color:red;">Erreur de connexion à l’agent : ' . esc_html($response->get_error_message()) . '</div>';
         } else {
-            $code = wp_remote_retrieve_response_code($response);
-            $body_resp = wp_remote_retrieve_body($response);
-            if ($code === 200) {
-                $data = json_decode($body_resp, true);
+            $status_code = wp_remote_retrieve_response_code($response);
+            $response_body = wp_remote_retrieve_body($response);
+            if ($status_code === 200) {
+                $data = json_decode($response_body, true);
                 $answer = isset($data['result']['answer']) ? esc_html($data['result']['answer']) : 'Aucune réponse.';
                 $output .= '<h3>Réponse de l’agent :</h3><pre style="white-space:pre-wrap;">' . $answer . '</pre>';
             } else {
-                $output .= '<div style="color:red;">Erreur API (' . intval($code) . ') : ' . esc_html($body_resp) . '</div>';
+                $output .= '<div style="color:red;">Erreur API (' . intval($status_code) . ') : ' . esc_html($response_body) . '</div>';
             }
         }
     }
