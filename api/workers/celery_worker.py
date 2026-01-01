@@ -19,6 +19,6 @@ def ping() -> dict:
 
 
 @celery_app.task(name="api.workers.celery_worker.add")
-def add(a: int, b: int) -> int:
+def add(first_number: int, second_number: int) -> int:
     """Add two integers asynchronously."""
-    return a + b
+    return first_number + second_number
