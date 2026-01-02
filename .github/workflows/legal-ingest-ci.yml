@@ -1,0 +1,239 @@
+name: Legal Ingest CI/CD
+
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+    paths:
+      - 'modules/legal-ingest/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'modules/legal-ingest/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/legal-ingest
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: modules/legal-ingest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 isort mypy
+          pip install -r requirements.txt
+      
+      - name: Run Black (formatting)
+        run: black --check src/ tests/
+        continue-on-error: true
+      
+      - name: Run isort (imports)
+        run: isort --check-only src/ tests/
+        continue-on-error: true
+      
+      - name: Run Flake8 (linting)
+        run: flake8 src/ tests/ --max-line-length=120 --extend-ignore=E203,W503
+        continue-on-error: true
+      
+      - name: Run MyPy (type checking)
+        run: mypy src/ --ignore-missing-imports
+        continue-on-error: true
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    defaults:
+      run:
+        working-directory: modules/legal-ingest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov
+          pip install -r requirements.txt
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: modules/legal-ingest/coverage.xml
+          flags: unittests
+          name: codecov-legal-ingest
+          fail_ci_if_error: false
+      
+      - name: Archive coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: modules/legal-ingest/htmlcov/
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: modules/legal-ingest
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: modules/legal-ingest
+          file: modules/legal-ingest/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    defaults:
+      run:
+        working-directory: modules/legal-ingest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'modules/legal-ingest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Check Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety
+          safety check --file=requirements.txt --output=text
+        continue-on-error: true
+
+  deploy-planethoster:
+    name: Deploy to PlanetHoster
+    runs-on: ubuntu-latest
+    needs: [test, build, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: modules/legal-ingest
+    
+    environment:
+      name: production
+      url: https://api.zeroobstacle.ca
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PLANETHOSTER_HOST }}
+          username: ${{ secrets.PLANETHOSTER_USER }}
+          key: ${{ secrets.PLANETHOSTER_SSH_KEY }}
+          port: ${{ secrets.PLANETHOSTER_PORT }}
+          script: |
+            cd /opt/legal-ingest
+            git pull origin main
+            docker-compose -f docker-compose-planethoster.yml pull
+            docker-compose -f docker-compose-planethoster.yml up -d
+            docker-compose -f docker-compose-planethoster.yml exec -T api python -c "print('Deployment successful')"
+      
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f https://api.zeroobstacle.ca/health || exit 1
+      
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Legal Ingest API deployment to PlanetHoster'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security-scan]
+    if: always()
+    
+    steps:
+      - name: Send notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

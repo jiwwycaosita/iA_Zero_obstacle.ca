@@ -1,0 +1,292 @@
+# Legal Sources Configuration
+# Liste des sources à ingérer avec priorités et métadonnées
+
+federal:
+  - name: Justice Laws
+    url: https://laws-lois.justice.gc.ca/eng/
+    type: html
+    priority: 1
+    languages: [en, fr]
+    frequency: daily
+    description: Consolidated federal laws and regulations
+    respect_robots: true
+    rate_limit_seconds: 2
+    
+  - name: Canada Gazette
+    url: https://www.gazette.gc.ca/
+    type: rss
+    priority: 1
+    languages: [en, fr]
+    frequency: daily
+    description: Official publication of federal government
+    respect_robots: true
+    rate_limit_seconds: 2
+    
+  - name: Supreme Court of Canada
+    url: https://www.scc-csc.ca/
+    type: html
+    priority: 1
+    languages: [en, fr]
+    frequency: weekly
+    description: Supreme Court decisions and rulings
+    respect_robots: true
+    rate_limit_seconds: 3
+    
+  - name: CanLII
+    url: https://www.canlii.org/
+    type: api
+    priority: 1
+    languages: [en, fr]
+    frequency: daily
+    description: Canadian Legal Information Institute
+    requires_api_key: true
+    bulk_available: true
+    respect_robots: true
+    rate_limit_seconds: 5
+
+provinces:
+  ontario:
+    - name: Ontario e-Laws
+      url: https://www.ontario.ca/laws
+      type: html
+      priority: 2
+      languages: [en, fr]
+      frequency: daily
+      description: Ontario consolidated laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  quebec:
+    - name: LégisQuébec
+      url: http://legisquebec.gouv.qc.ca/
+      type: html
+      priority: 2
+      languages: [fr, en]
+      frequency: daily
+      description: Quebec consolidated laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  british_columbia:
+    - name: BC Laws
+      url: https://www.bclaws.gov.bc.ca/
+      type: html
+      priority: 2
+      languages: [en]
+      frequency: daily
+      description: British Columbia laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  alberta:
+    - name: Alberta Laws
+      url: https://www.qp.alberta.ca/
+      type: html
+      priority: 3
+      languages: [en]
+      frequency: weekly
+      description: Alberta laws and regulations
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  saskatchewan:
+    - name: Saskatchewan Laws
+      url: https://www.qp.gov.sk.ca/
+      type: html
+      priority: 3
+      languages: [en]
+      frequency: weekly
+      description: Saskatchewan laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  manitoba:
+    - name: Manitoba Laws
+      url: https://web2.gov.mb.ca/laws/
+      type: html
+      priority: 3
+      languages: [en, fr]
+      frequency: weekly
+      description: Manitoba laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  new_brunswick:
+    - name: New Brunswick Laws
+      url: https://laws.gnb.ca/
+      type: html
+      priority: 3
+      languages: [en, fr]
+      frequency: weekly
+      description: New Brunswick laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  nova_scotia:
+    - name: Nova Scotia Laws
+      url: https://nslegislature.ca/
+      type: html
+      priority: 3
+      languages: [en]
+      frequency: weekly
+      description: Nova Scotia laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  prince_edward_island:
+    - name: PEI Laws
+      url: https://www.princeedwardisland.ca/
+      type: html
+      priority: 3
+      languages: [en]
+      frequency: weekly
+      description: Prince Edward Island laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  newfoundland_labrador:
+    - name: Newfoundland and Labrador Laws
+      url: https://www.assembly.nl.ca/
+      type: html
+      priority: 3
+      languages: [en]
+      frequency: weekly
+      description: Newfoundland and Labrador laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  yukon:
+    - name: Yukon Laws
+      url: https://laws.yukon.ca/
+      type: html
+      priority: 4
+      languages: [en, fr]
+      frequency: monthly
+      description: Yukon laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  northwest_territories:
+    - name: Northwest Territories Laws
+      url: https://www.justice.gov.nt.ca/
+      type: html
+      priority: 4
+      languages: [en, fr]
+      frequency: monthly
+      description: Northwest Territories laws
+      respect_robots: true
+      rate_limit_seconds: 2
+      
+  nunavut:
+    - name: Nunavut Laws
+      url: https://www.gov.nu.ca/
+      type: html
+      priority: 4
+      languages: [en, fr]
+      frequency: monthly
+      description: Nunavut laws
+      respect_robots: true
+      rate_limit_seconds: 2
+
+regulators:
+  - name: Canada Revenue Agency
+    url: https://www.canada.ca/en/revenue-agency.html
+    type: html
+    priority: 2
+    languages: [en, fr]
+    frequency: weekly
+    description: Tax laws and regulations
+    respect_robots: true
+    rate_limit_seconds: 2
+    
+  - name: AMF - Autorité des marchés financiers
+    url: https://lautorite.qc.ca/
+    type: html
+    priority: 2
+    languages: [fr, en]
+    frequency: weekly
+    description: Quebec financial markets regulator
+    respect_robots: true
+    rate_limit_seconds: 2
+    
+  - name: IRCC - Immigration, Refugees and Citizenship Canada
+    url: https://www.canada.ca/en/immigration-refugees-citizenship.html
+    type: html
+    priority: 2
+    languages: [en, fr]
+    frequency: weekly
+    description: Immigration laws and regulations
+    respect_robots: true
+    rate_limit_seconds: 2
+    
+  - name: OSFI - Office of the Superintendent of Financial Institutions
+    url: https://www.osfi-bsif.gc.ca/
+    type: html
+    priority: 3
+    languages: [en, fr]
+    frequency: monthly
+    description: Federal financial regulator
+    respect_robots: true
+    rate_limit_seconds: 2
+    
+  - name: FCAC - Financial Consumer Agency of Canada
+    url: https://www.canada.ca/en/financial-consumer-agency.html
+    type: html
+    priority: 3
+    languages: [en, fr]
+    frequency: monthly
+    description: Financial consumer protection
+    respect_robots: true
+    rate_limit_seconds: 2
+
+municipalities:
+  priority_cities:
+    - name: Toronto
+      url: https://www.toronto.ca/city-government/planning-development/
+      type: html
+      priority: 2
+      languages: [en]
+      frequency: weekly
+      description: Toronto municipal bylaws
+      respect_robots: true
+      rate_limit_seconds: 3
+      
+    - name: Montreal
+      url: https://montreal.ca/
+      type: html
+      priority: 2
+      languages: [fr, en]
+      frequency: weekly
+      description: Montreal municipal bylaws
+      respect_robots: true
+      rate_limit_seconds: 3
+      
+    - name: Vancouver
+      url: https://vancouver.ca/
+      type: html
+      priority: 2
+      languages: [en]
+      frequency: weekly
+      description: Vancouver municipal bylaws
+      respect_robots: true
+      rate_limit_seconds: 3
+      
+    - name: Calgary
+      url: https://www.calgary.ca/
+      type: html
+      priority: 2
+      languages: [en]
+      frequency: weekly
+      description: Calgary municipal bylaws
+      respect_robots: true
+      rate_limit_seconds: 3
+      
+    - name: Ottawa
+      url: https://ottawa.ca/
+      type: html
+      priority: 2
+      languages: [en, fr]
+      frequency: weekly
+      description: Ottawa municipal bylaws
+      respect_robots: true
+      rate_limit_seconds: 3

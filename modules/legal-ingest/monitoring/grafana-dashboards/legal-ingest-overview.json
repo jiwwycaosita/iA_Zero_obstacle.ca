@@ -1,0 +1,70 @@
+{
+  "dashboard": {
+    "title": "Legal Ingest Overview",
+    "tags": ["legal-ingest", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Documents Processed",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(documents_processed_total[5m])) by (source)",
+            "legendFormat": "{{source}}"
+          }
+        ]
+      },
+      {
+        "title": "Processing Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(documents_processed_total{status='success'}[5m])) / sum(rate(documents_processed_total[5m])) * 100"
+          }
+        ]
+      },
+      {
+        "title": "Active Scrapers",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "active_scrapers"
+          }
+        ]
+      },
+      {
+        "title": "Queue Size",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "queue_size"
+          }
+        ]
+      },
+      {
+        "title": "Scraping Duration by Source",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "scraping_duration_seconds_bucket"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(documents_processed_total{status='error'}[5m])) by (source)",
+            "legendFormat": "{{source}}"
+          }
+        ]
+      }
+    ],
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    }
+  }
+}

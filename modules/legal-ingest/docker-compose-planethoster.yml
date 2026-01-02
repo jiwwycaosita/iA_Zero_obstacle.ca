@@ -1,0 +1,80 @@
+version: '3.9'
+
+# PlanetHoster deployment: API + Cache DB + Nginx + SSL
+# Lightweight deployment for serving API and caching metadata
+
+services:
+  postgres-cache:
+    image: postgres:15-alpine
+    container_name: legal_cache_db
+    environment:
+      - POSTGRES_USER=${PLANETHOSTER_POSTGRES_USER:-legal_cache}
+      - POSTGRES_PASSWORD=${PLANETHOSTER_POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${PLANETHOSTER_POSTGRES_DB:-legal_cache}
+    volumes:
+      - postgres-cache-data:/var/lib/postgresql/data
+    networks:
+      - web-network
+    restart: unless-stopped
+    mem_limit: 512m
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legal_api
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - POSTGRES_HOST=postgres-cache
+    volumes:
+      - ./src:/app/src
+      - ./logs:/data/logs
+    depends_on:
+      - postgres-cache
+    networks:
+      - web-network
+    restart: unless-stopped
+    mem_limit: 1g
+
+  nginx:
+    image: nginx:alpine
+    container_name: legal_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - api
+    networks:
+      - web-network
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: legal_certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - nginx
+    command: certonly --webroot --webroot-path=/var/www/html --email admin@zeroobstacle.ca --agree-tos --no-eff-email --force-renewal -d api.zeroobstacle.ca
+
+networks:
+  web-network:
+    driver: bridge
+
+volumes:
+  postgres-cache-data:
+  certbot-etc:
+  certbot-var:
+  web-root:

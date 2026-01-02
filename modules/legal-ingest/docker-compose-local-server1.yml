@@ -1,0 +1,167 @@
+version: '3.9'
+
+# Local Server 1: OpenSearch + Milvus + Ingestion Workers
+# Resource allocation: 16GB RAM total
+# - OpenSearch: 8GB heap
+# - Milvus: 4GB
+# - Workers: 2GB each (3 workers)
+# - OS/Other: 2GB
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: legal_opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms8g -Xmx8g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-Admin123!}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - D:/legal-ingest/opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      - legal-network
+    restart: unless-stopped
+    mem_limit: 10g
+
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: legal_milvus_etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - D:/legal-ingest/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - legal-network
+    restart: unless-stopped
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: legal_milvus_minio
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - D:/legal-ingest/milvus-minio:/minio_data
+    command: minio server /minio_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - legal-network
+    restart: unless-stopped
+
+  milvus-standalone:
+    image: milvusdb/milvus:v2.3.3
+    container_name: legal_milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+    volumes:
+      - D:/legal-ingest/milvus-data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    networks:
+      - legal-network
+    restart: unless-stopped
+    mem_limit: 4g
+
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legal_worker1
+    env_file:
+      - .env
+    environment:
+      - WORKER_ID=1
+      - WORKER_TYPE=scraper
+    command: python -m src.ingest_manager
+    volumes:
+      - D:/legal-ingest/raw-data:/data/raw
+      - ./src:/app/src
+      - ./logs:/data/logs
+    depends_on:
+      - opensearch
+      - milvus-standalone
+    networks:
+      - legal-network
+    restart: unless-stopped
+    mem_limit: 2g
+
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legal_worker2
+    env_file:
+      - .env
+    environment:
+      - WORKER_ID=2
+      - WORKER_TYPE=normalizer
+    command: python -m src.ingest_manager
+    volumes:
+      - D:/legal-ingest/raw-data:/data/raw
+      - ./src:/app/src
+      - ./logs:/data/logs
+    depends_on:
+      - opensearch
+      - milvus-standalone
+    networks:
+      - legal-network
+    restart: unless-stopped
+    mem_limit: 2g
+
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legal_worker3
+    env_file:
+      - .env
+    environment:
+      - WORKER_ID=3
+      - WORKER_TYPE=embeddings
+    command: python -m src.ingest_manager
+    volumes:
+      - D:/legal-ingest/raw-data:/data/raw
+      - ./src:/app/src
+      - ./logs:/data/logs
+    depends_on:
+      - opensearch
+      - milvus-standalone
+    networks:
+      - legal-network
+    restart: unless-stopped
+    mem_limit: 2g
+
+networks:
+  legal-network:
+    driver: bridge
+
+volumes:
+  opensearch-data:
+  etcd-data:
+  milvus-minio-data:
+  milvus-data:
+  raw-data:
