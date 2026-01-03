@@ -52,12 +52,35 @@ class ProgramRule(BaseModel):
     required: bool = True
 
 
+class TowingCalculationRequest(BaseModel):
+    vehicle_type: str  # "car", "truck", "motorcycle", "suv"
+    distance_km: float
+    location: str  # Province/Territory code
+    service_type: str  # "standard", "urgent", "accident"
+    additional_services: Optional[List[str]] = None  # "winch", "flatbed", etc.
+
+
+class TaxOptimizationRequest(BaseModel):
+    province: str
+    income: float
+    filing_status: str  # "single", "married", "common_law"
+    dependents: int
+    business_income: Optional[float] = None
+    investment_income: Optional[float] = None
+    rrsp_contribution: Optional[float] = None
+    rdsp_contribution: Optional[float] = None
+    other_credits: Optional[Dict[str, Any]] = None
+    years_to_analyze: Optional[List[int]] = None  # Past, present, future years
+
+
 class OrchestrationRequest(BaseModel):
-    task: str  # "pdf_extraction", "admissibility", "prefill", "general"
+    task: str  # "pdf_extraction", "admissibility", "prefill", "general", "towing_calculator", "tax_optimization"
     text: Optional[str] = None
     pdf_base64: Optional[str] = None
     user_profile: Optional[Dict[str, Any]] = None
     program_rules: Optional[List[ProgramRule]] = None
+    towing_data: Optional[TowingCalculationRequest] = None
+    tax_data: Optional[TaxOptimizationRequest] = None
 
 
 class OrchestrationResponse(BaseModel):
@@ -246,6 +269,221 @@ Retour attendu (JSON) :
     return prefilled_values
 
 
+async def agent_towing_calculator(towing_data: TowingCalculationRequest) -> Dict[str, Any]:
+    """
+    Calcule les frais de remorquage selon le type de véhicule, la distance,
+    la localisation et les services additionnels.
+    Utilise des tarifs de base réalistes pour le Canada.
+    """
+    import json
+
+    towing_json = json.dumps(towing_data.dict(), ensure_ascii=False)
+
+    prompt = f"""
+Tu es un expert en calcul de frais de remorquage au Canada.
+
+Données de remorquage :
+{towing_json}
+
+Tâche :
+1. Calcule les frais de base selon :
+   - Type de véhicule (voiture: 100-150$, camion: 150-250$, moto: 80-120$, VUS: 120-180$)
+   - Distance (tarif de base + environ 3-5$/km)
+   - Province/territoire (variations régionales)
+   - Type de service (standard, urgent +50%, accident +75%)
+   - Services additionnels (treuil: +50-100$, plateforme: +75-150$)
+
+2. Calcule les taxes applicables selon la province (TPS/TVQ/TVH)
+
+3. Fournis une estimation détaillée avec:
+   - Frais de base
+   - Frais de distance
+   - Suppléments
+   - Sous-total
+   - Taxes
+   - Total estimé
+   - Plage de prix (min-max)
+   - Recommandations pour économiser
+
+Retourne UNIQUEMENT un JSON valide de la forme :
+{{
+  "base_fee": <nombre>,
+  "distance_fee": <nombre>,
+  "service_surcharge": <nombre>,
+  "additional_fees": {{"service_name": <nombre>}},
+  "subtotal": <nombre>,
+  "taxes": {{"type": "rate", "amount": <nombre>}},
+  "total_estimated": <nombre>,
+  "price_range": {{"min": <nombre>, "max": <nombre>}},
+  "recommendations": ["..."],
+  "reliability_score": <0-100>,
+  "disclaimer": "..."
+}}
+"""
+
+    llm_response = await call_ollama(prompt)
+    try:
+        calculation = json.loads(llm_response)
+    except Exception:
+        calculation = {
+            "error": "Impossible de calculer les frais",
+            "raw_response": llm_response,
+        }
+    return calculation
+
+
+async def agent_tax_optimization(tax_data: TaxOptimizationRequest) -> Dict[str, Any]:
+    """
+    Agent d'optimisation fiscale et de recherche de crédits/subventions.
+    Analyse complète des programmes gouvernementaux fédéraux et provinciaux.
+    Optimise les stratégies fiscales pour maximiser les économies.
+    """
+    import json
+
+    tax_json = json.dumps(tax_data.dict(), ensure_ascii=False)
+
+    prompt = f"""
+Tu es un expert fiscal canadien spécialisé dans l'optimisation fiscale et les programmes gouvernementaux.
+
+Données du contribuable :
+{tax_json}
+
+Tâche COMPLÈTE :
+
+1. ANALYSE DES PROGRAMMES GOUVERNEMENTAUX :
+   - Identifie TOUS les programmes fédéraux applicables (Allocation canadienne pour enfants, Crédit TPS/TVH, etc.)
+   - Identifie TOUS les programmes provinciaux/territoriaux applicables
+   - Calcule les montants estimés pour chaque programme
+   - Indique le taux de fiabilité basé sur les informations fournies
+
+2. CALCUL D'IMPÔT DÉTAILLÉ :
+   - Revenu imposable total (emploi + entreprise + investissements)
+   - Taux d'imposition marginal fédéral et provincial
+   - Taux d'imposition effectif
+   - Impôt fédéral et provincial
+   - Crédits d'impôt applicables (de base, conjoint, personnes à charge, etc.)
+
+3. OPTIMISATION RRSP/REEI :
+   - Contribution optimale au RRSP pour réduire l'impôt
+   - Économies d'impôt par tranche de contribution
+   - Contribution au REEI si applicable
+   - Subventions et bons du gouvernement
+
+4. STRATÉGIES D'OPTIMISATION :
+   - Fractionnement du revenu (si applicable)
+   - Déductions et crédits manqués
+   - Optimisation des placements (compte enregistré vs non-enregistré)
+   - Stratégies pour années futures
+
+5. ANALYSE COMPARATIVE :
+   - Scénario actuel
+   - Scénario optimisé
+   - Gains/pertes pour chaque option
+   - Impact sur années passées (si applicable pour révision)
+   - Projections futures (3-5 ans)
+
+6. CONTESTATION ET RÉVISION :
+   - Décisions administratives possiblement contestables
+   - Montants d'impôt à réviser
+   - Délais et procédures
+
+IMPORTANT :
+- Fournis un score de fiabilité (0-100%) basé sur la complétude des informations
+- Indique clairement quelles informations manquantes amélioreraient la précision
+- Toutes estimations sont basées sur les lois fiscales canadiennes en vigueur
+- L'utilisateur est responsable de fournir des informations complètes et exactes
+
+Retourne UNIQUEMENT un JSON valide de la forme :
+{{
+  "reliability_score": <0-100>,
+  "missing_information": ["..."],
+  "federal_programs": [
+    {{
+      "name": "...",
+      "eligibility": true/false,
+      "estimated_amount": <nombre>,
+      "requirements": ["..."],
+      "application_link": "..."
+    }}
+  ],
+  "provincial_programs": [...],
+  "tax_calculation": {{
+    "total_income": <nombre>,
+    "taxable_income": <nombre>,
+    "federal_tax": <nombre>,
+    "provincial_tax": <nombre>,
+    "total_tax": <nombre>,
+    "marginal_rate": <nombre>,
+    "effective_rate": <nombre>,
+    "credits": {{"credit_name": <nombre>}}
+  }},
+  "rrsp_optimization": {{
+    "current_contribution": <nombre>,
+    "optimal_contribution": <nombre>,
+    "tax_savings": <nombre>,
+    "contribution_room": <nombre>
+  }},
+  "rdsp_analysis": {{
+    "eligible": true/false,
+    "optimal_contribution": <nombre>,
+    "government_grants": <nombre>,
+    "government_bonds": <nombre>
+  }},
+  "optimization_strategies": [
+    {{
+      "strategy": "...",
+      "current_situation": "...",
+      "optimized_situation": "...",
+      "estimated_savings": <nombre>,
+      "complexity": "low/medium/high",
+      "timeline": "immediate/short-term/long-term"
+    }}
+  ],
+  "comparative_analysis": {{
+    "current_scenario": {{
+      "total_tax": <nombre>,
+      "net_income": <nombre>,
+      "government_benefits": <nombre>
+    }},
+    "optimized_scenario": {{
+      "total_tax": <nombre>,
+      "net_income": <nombre>,
+      "government_benefits": <nombre>
+    }},
+    "total_improvement": <nombre>
+  }},
+  "contestation_opportunities": [
+    {{
+      "type": "...",
+      "description": "...",
+      "potential_recovery": <nombre>,
+      "deadline": "...",
+      "complexity": "low/medium/high"
+    }}
+  ],
+  "future_projections": {{
+    "year_1": {{"tax": <nombre>, "benefits": <nombre>}},
+    "year_3": {{"tax": <nombre>, "benefits": <nombre>}},
+    "year_5": {{"tax": <nombre>, "benefits": <nombre>}}
+  }},
+  "recommendations": ["..."],
+  "disclaimer": "Cette analyse est basée sur les informations fournies et les lois fiscales actuelles. Consultez un fiscaliste pour des conseils personnalisés. L'utilisateur est responsable de l'exactitude des informations fournies."
+}}
+"""
+
+    llm_response = await call_ollama(prompt)
+    try:
+        optimization = json.loads(llm_response)
+    except Exception:
+        optimization = {
+            "error": "Impossible de compléter l'analyse fiscale",
+            "raw_response": llm_response[:500],
+            "reliability_score": 0,
+            "disclaimer": "Erreur de traitement. Veuillez réessayer ou consulter un professionnel.",
+        }
+    return optimization
+
+
 # =========================
 #         Endpoints
 # =========================
@@ -312,6 +550,18 @@ Question :
         llm_response = await call_ollama(prompt)
         return OrchestrationResponse(task=request.task, result={"answer": llm_response})
 
+    if request.task == "towing_calculator":
+        if not request.towing_data:
+            raise HTTPException(status_code=400, detail="towing_data manquant pour task=towing_calculator")
+        result = await agent_towing_calculator(request.towing_data)
+        return OrchestrationResponse(task=request.task, result=result)
+
+    if request.task == "tax_optimization":
+        if not request.tax_data:
+            raise HTTPException(status_code=400, detail="tax_data manquant pour task=tax_optimization")
+        result = await agent_tax_optimization(request.tax_data)
+        return OrchestrationResponse(task=request.task, result=result)
+
     raise HTTPException(status_code=400, detail=f"Task inconnue: {request.task}")
 
 
@@ -376,6 +626,42 @@ async def demo_prefill():
     }
     result = await agent_prefill_form(demo_profile, fields_schema)
     return {"profile": demo_profile, "fields_schema": fields_schema, "result": result}
+
+
+@app.get("/demo/towing")
+async def demo_towing():
+    """
+    Démo du calculateur de remorquage.
+    """
+    demo_towing = TowingCalculationRequest(
+        vehicle_type="car",
+        distance_km=25.5,
+        location="QC",
+        service_type="standard",
+        additional_services=["winch"],
+    )
+    result = await agent_towing_calculator(demo_towing)
+    return {"towing_data": demo_towing.dict(), "result": result}
+
+
+@app.get("/demo/tax_optimization")
+async def demo_tax_optimization():
+    """
+    Démo de l'optimisation fiscale et recherche de programmes.
+    """
+    demo_tax = TaxOptimizationRequest(
+        province="QC",
+        income=65000,
+        filing_status="married",
+        dependents=2,
+        business_income=0,
+        investment_income=2000,
+        rrsp_contribution=5000,
+        rdsp_contribution=0,
+        years_to_analyze=[2023, 2024, 2025],
+    )
+    result = await agent_tax_optimization(demo_tax)
+    return {"tax_data": demo_tax.dict(), "result": result}
 
 
 if __name__ == "__main__":

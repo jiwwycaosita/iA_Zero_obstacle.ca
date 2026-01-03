@@ -12,6 +12,8 @@ Zero Obstacle est une plateforme citoyenne qui aide les utilisateurs à naviguer
 - **Préremplissage automatique**: Remplissage intelligent de formulaires en ligne
 - **Vérification d'admissibilité**: Évaluation technique des critères d'éligibilité aux programmes
 - **Assistant conversationnel**: Réponses aux questions générales sur les démarches administratives
+- **Calculateur de remorquage**: Estimation détaillée des frais de remorquage selon la province et le type de service
+- **Optimisation fiscale avancée**: Analyse complète des programmes gouvernementaux, crédits d'impôt, et stratégies d'optimisation pour maximiser les économies fiscales
 
 ## Architecture
 
@@ -28,6 +30,8 @@ L'application utilise:
   - Agent d'admissibilité aux programmes
   - Agent de préremplissage de formulaires
   - Agent conversationnel général
+  - Agent calculateur de remorquage
+  - Agent d'optimisation fiscale et recherche de programmes gouvernementaux
 - `wordpress-plugin/zero-obstacle-agent/`: Plugin WordPress pour connecter la plateforme à votre site
 - `Dockerfile`: Configuration Docker pour déploiement containerisé
 - `docker-compose.yml`: Orchestration de l'application en conteneurs
@@ -118,6 +122,8 @@ L'application utilise:
 
 - `GET /demo/admissibility` - Démonstration de vérification d'admissibilité
 - `GET /demo/prefill` - Démonstration de préremplissage de formulaire
+- `GET /demo/towing` - Démonstration du calculateur de remorquage
+- `GET /demo/tax_optimization` - Démonstration de l'optimisation fiscale et recherche de programmes
 
 ### Utilisation de l'endpoint d'orchestration
 
@@ -173,6 +179,53 @@ L'endpoint `/agent/orchestrate` accepte différents types de tâches:
   "text": "Comment puis-je faire une demande d'aide financière?"
 }
 ```
+
+#### 5. Calculateur de remorquage (`towing_calculator`)
+```json
+{
+  "task": "towing_calculator",
+  "towing_data": {
+    "vehicle_type": "car",
+    "distance_km": 25.5,
+    "location": "QC",
+    "service_type": "standard",
+    "additional_services": ["winch", "flatbed"]
+  }
+}
+```
+
+**Réponse** : Estimation détaillée des frais incluant frais de base, distance, suppléments, taxes, total estimé avec plage de prix (min-max), recommandations pour économiser, et score de fiabilité.
+
+#### 6. Optimisation fiscale et recherche de programmes (`tax_optimization`)
+```json
+{
+  "task": "tax_optimization",
+  "tax_data": {
+    "province": "QC",
+    "income": 65000,
+    "filing_status": "married",
+    "dependents": 2,
+    "business_income": 15000,
+    "investment_income": 2000,
+    "rrsp_contribution": 5000,
+    "rdsp_contribution": 0,
+    "years_to_analyze": [2023, 2024, 2025]
+  }
+}
+```
+
+**Réponse complète incluant** :
+- **Score de fiabilité** (0-100%) basé sur la complétude des informations
+- **Programmes gouvernementaux** : Liste TOUS les programmes fédéraux et provinciaux applicables avec montants estimés
+- **Calcul d'impôt détaillé** : Impôt fédéral/provincial, taux marginal/effectif, crédits applicables
+- **Optimisation RRSP/REEI** : Contributions optimales, économies d'impôt, subventions gouvernementales
+- **Stratégies d'optimisation** : Fractionnement du revenu, déductions manquées, optimisation des placements
+- **Analyse comparative** : Scénario actuel vs optimisé avec gains/pertes détaillés
+- **Opportunités de contestation** : Décisions administratives contestables, montants à réviser
+- **Projections futures** : Impact fiscal sur 3-5 ans
+- **Recommandations personnalisées**
+
+**Note importante** : L'utilisateur est responsable de fournir des informations complètes et exactes. Plus les informations sont complètes, plus le score de fiabilité et la précision de l'analyse sont élevés.
 
 ## Notes Importantes
 
