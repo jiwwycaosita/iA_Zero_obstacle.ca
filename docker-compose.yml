@@ -1,43 +1,18 @@
 version: "3.9"
 
 services:
-  api:
+  zero-obstacle-api:
     build:
       context: .
-      dockerfile: api/Dockerfile
-    container_name: example_api
+      dockerfile: Dockerfile
+    container_name: zero_obstacle_api
     env_file:
       - .env
     ports:
-      - "8000:8000"
-    depends_on:
-      - redis
-    command: uvicorn api.app:app --host 0.0.0.0 --port 8000
-
-  worker:
-    build:
-      context: .
-      dockerfile: api/Dockerfile
-    container_name: celery_worker
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    command: celery -A api.workers.celery_worker.celery_app worker --loglevel=info
-
-  scheduler:
-    build:
-      context: .
-      dockerfile: api/Dockerfile
-    container_name: celery_scheduler
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    command: celery -A api.workers.scheduler.celery_app beat --loglevel=info
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
+      - "8080:8080"
+    volumes:
+      - .:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+    environment:
+      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1}
