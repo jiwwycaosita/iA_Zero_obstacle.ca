@@ -4,37 +4,37 @@ services:
   api:
     build:
       context: .
-      dockerfile: api/Dockerfile
-    container_name: example_api
+      dockerfile: Dockerfile
+    container_name: zero_obstacle_api
     env_file:
       - .env
     ports:
       - "8000:8000"
     depends_on:
       - redis
-    command: uvicorn api.app:app --host 0.0.0.0 --port 8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
 
   worker:
     build:
       context: .
-      dockerfile: api/Dockerfile
-    container_name: celery_worker
+      dockerfile: Dockerfile
+    container_name: zero_obstacle_worker
     env_file:
       - .env
     depends_on:
       - redis
-    command: celery -A api.workers.celery_worker.celery_app worker --loglevel=info
+    command: celery -A workers.celery_worker.celery_app worker --loglevel=info
 
   scheduler:
     build:
       context: .
-      dockerfile: api/Dockerfile
-    container_name: celery_scheduler
+      dockerfile: Dockerfile
+    container_name: zero_obstacle_scheduler
     env_file:
       - .env
     depends_on:
       - redis
-    command: celery -A api.workers.scheduler.celery_app beat --loglevel=info
+    command: celery -A workers.scheduler.celery_app beat --loglevel=info
 
   redis:
     image: redis:7-alpine

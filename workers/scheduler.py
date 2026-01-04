@@ -8,12 +8,12 @@ celery_app = Celery(
     "celery_scheduler",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=["api.workers.celery_worker"],
+    include=["workers.celery_worker"],
 )
 
 celery_app.conf.beat_schedule = {
     "ping-every-minute": {
-        "task": "api.workers.celery_worker.ping",
+        "task": "workers.celery_worker.ping",
         "schedule": crontab(minute="*/1"),
     }
 }
