@@ -1,8 +1,18 @@
-"""Tests simples pour vérifier que l'API répond localement."""
+"""Tests simples pour vérifier que l'API répond localement.
 
+Usage:
+    # For local Windows deployment (port 8080):
+    python test_api.py
+    
+    # For Docker deployment (port 8000):
+    API_BASE_URL=http://localhost:8000 python test_api.py
+"""
+
+import os
 import requests
 
-BASE_URL = "http://localhost:8080"
+# Support both local Windows deployment (8080) and Docker deployment (8000)
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8080")
 
 
 def test_health():
