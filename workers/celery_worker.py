@@ -12,13 +12,13 @@ celery_app = Celery(
 )
 
 
-@celery_app.task(name="api.workers.celery_worker.ping")
+@celery_app.task(name="workers.celery_worker.ping")
 def ping() -> dict:
     """Simple task to verify the worker is alive."""
     return {"message": "pong", "timestamp": datetime.utcnow().isoformat()}
 
 
-@celery_app.task(name="api.workers.celery_worker.add")
+@celery_app.task(name="workers.celery_worker.add")
 def add(first_number: int, second_number: int) -> int:
     """Add two integers asynchronously."""
     return first_number + second_number

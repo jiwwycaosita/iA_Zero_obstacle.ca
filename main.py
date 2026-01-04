@@ -1,12 +1,14 @@
 # main.py
 #
-# Serveur d'agents Zero Obstacle
+# Serveur d'agents Zero Obstacle - Unified Application
 # - API FastAPI
-# - Intégration Ollama
+# - Intégration Ollama pour agents Zero Obstacle
+# - Celery pour tâches asynchrones
+# - Connecteurs OpenAI et Supabase
 # - Agents : orchestrateur, PDF, admissibilité, préremplissage
 #
 # Dépendances :
-#   pip install fastapi uvicorn[standard] httpx pydantic pypdf python-dotenv
+#   pip install -r requirements.txt
 
 import base64
 import io
@@ -20,13 +22,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pypdf import PdfReader
 
-# Charger .env si présent (OLLAMA_URL, OLLAMA_MODEL)
+# Importer les workers Celery
+try:
+    from workers.celery_worker import celery_app, add, ping
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+
+# Charger .env si présent
 load_dotenv()
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
-app = FastAPI(title="Zero Obstacle Agents", version="0.1.0")
+app = FastAPI(title="Zero Obstacle Unified Platform", version="1.0.0")
 
 # CORS (MVP : tout autoriser, à restreindre plus tard)
 app.add_middleware(
@@ -36,7 +46,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # =========================
 #       Modèles Pydantic
@@ -253,7 +262,52 @@ Retour attendu (JSON) :
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model": OLLAMA_MODEL}
+    """Health check for the entire platform."""
+    return {
+        "status": "ok",
+        "model": OLLAMA_MODEL,
+        "celery_available": CELERY_AVAILABLE,
+        "redis_url": REDIS_URL if CELERY_AVAILABLE else None
+    }
+
+
+# =========================
+# Celery Worker Endpoints
+# =========================
+
+
+class AddJobRequest(BaseModel):
+    """Request model for adding two numbers via Celery."""
+    first_number: int
+    second_number: int
+
+
+@app.post("/celery/enqueue")
+async def enqueue_job(job_request: AddJobRequest) -> dict:
+    """Enqueue a simple addition task for the Celery worker."""
+    if not CELERY_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Celery is not available")
+    
+    if not REDIS_URL:
+        raise HTTPException(status_code=500, detail="Missing REDIS_URL configuration")
+
+    task = add.delay(job_request.first_number, job_request.second_number)
+    return {"task_id": task.id, "status": "queued"}
+
+
+@app.get("/celery/ping")
+async def celery_ping() -> dict:
+    """Trigger a ping task to verify Celery worker is alive."""
+    if not CELERY_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Celery is not available")
+    
+    task = ping.delay()
+    return {"task_id": task.id, "status": "queued"}
+
+
+# =========================
+# Zero Obstacle Agents
+# =========================
 
 
 @app.post("/agent/orchestrate", response_model=OrchestrationResponse)
