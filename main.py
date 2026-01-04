@@ -287,9 +287,6 @@ async def enqueue_job(job_request: AddJobRequest) -> dict:
     """Enqueue a simple addition task for the Celery worker."""
     if not CELERY_AVAILABLE:
         raise HTTPException(status_code=503, detail="Celery is not available")
-    
-    if not REDIS_URL:
-        raise HTTPException(status_code=500, detail="Missing REDIS_URL configuration")
 
     task = add.delay(job_request.first_number, job_request.second_number)
     return {"task_id": task.id, "status": "queued"}
